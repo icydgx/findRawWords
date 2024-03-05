@@ -1,82 +1,86 @@
 # -*- coding: utf-8 -*-
 
-# Importing necessary libraries
 import re
 import os
 from types import NoneType
+import sys
+
+# Add the path of the dictionary module
+sys.path.append('C:/python/ECDICT-master')
 import stardict
 import re
 import time
 
-# Creating an instance of the LemmaDB class from the stardict module
+# Function to remove duplicate words from a text
+def remove_duplicates(text):
+    words = text.split()
+    unique_words = []
+    for word in words:
+        if word not in unique_words:
+            unique_words.append(word)
+    return ' '.join(unique_words)
+
+# Add current directory to the sys.path
+sys.path.append('.')
+
+# Create a LemmaDB object
 lemma = stardict.LemmaDB()
 
-# Loading the lemma database from 'lemma.en.txt' file
+# Load the lemma dictionary
 t = time.time()
-lemma.load('lemma.en.txt')
+lemma.load('C:/python/ECDICT-master/lemma.en.txt')
 print('load in %s seconds' % str(time.time() - t))
 
-# Function to find unknown words in a given text file
+# Function to find unknown words in a text file
 def find_unknown_words(text_file, word_list_file):
-    # Reading the contents of the text file
     with open(text_file, 'r', encoding='utf-8') as file:
         text = file.read()
 
-    # Removing curly braces and their contents from the text
+    # Remove text within curly braces
     text = re.sub(r"\{.*?\}", "", text)
 
-    # Filtering out non-alphabetic characters and converting them to spaces
+    # Filter out non-alphabetic characters and convert to lowercase
     filtered_text = re.sub(r"[^a-zA-Z\s]+", ' ', text)
 
-    # Extracting words from the filtered text
+    # Extract words from the filtered text
     words = re.findall(r"\b[a-zA-Z']+\b", filtered_text)
 
-    # Filtering out words containing apostrophes
+    # Filter out words with an apostrophe
     words = [word for word in words if "'" not in word]
 
-    # Filtering out words starting with uppercase letters
+    # Filter out words starting with uppercase letters
     words = [word for word in words if not word[0].isupper()]
 
-    # Reading the word list file
     with open(word_list_file, 'r', encoding='utf-8') as file:
         word_list = file.read().lower().splitlines()
 
-    # Set to store unknown words
+    s = ''
     unknown_words = set()
-
-    # Checking each word for its stem in the lemma database
     for word in words:
         result = lemma.word_stem(word.lower())
         if result is not None:
-            # Checking conditions for unknown words
             if text_file.lower().endswith('.srt') or text_file.lower().endswith('.txt'):
                 if len(word) > 3 and str(result[0]) not in word_list:
                     if len(str(result[0])) == 3 and str(result[0]).endswith('s'):
                         continue
                     unknown_words.add(word)
+                    s += str(result[0]) + ' '
 
-    # Converting the set of unknown words to a sorted list
-    unknown_words = list(unknown_words)
-    unknown_words.sort()
-
-    # Returning the list of unknown words
+    # Remove duplicate stems
+    unknown_words = remove_duplicates(s)
     return unknown_words
 
-# Folder containing text files
+# Specify the text folder and choose the first file in the folder
 text_folder = 'raw_word'
-
-# Selecting the first text file in the folder
 text_file = os.listdir(text_folder)[0]
 
-# Word list file
-word_list_file = "knew_word_list.txt"
+# Specify the word list file
+word_list_file = "word_list.txt"
 
-# Finding unknown words in the selected text file
+# Find unknown words in the text file
 unknown_words = find_unknown_words(os.path.join(text_folder, text_file), word_list_file)
 
-# Printing each unknown word
-for i in unknown_words:
+# Print each unknown word and the total count
+for i in unknown_words.split():
     print(i)
-
-# Printing the total number of unknown words
-print(len(unknown_words))
+print(len(unknown_words.split()))
